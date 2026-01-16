@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <img src="Logo.png" alt="Library Logo" width="27px" height="40px" style=" opacity: 50%S;">
+                <h1>Perpustakaan PC IPM Panawuan</h1>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="username" placeholder="Masukkan username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="password" placeholder="Masukkan password" required>
+                </div>
+                
+                <div class="form-group">
+                    <select id="role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <div class="register-link">
+                    Belum punya akun? 
+                    <a href="register.html" style="color: var(--ipm-green); font-weight: 600;">
+                        <i class="fas fa-user-plus"></i> Daftar Sekarang
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="features">
+            <i><img src="buku.png" alt="" class="features-image"></i>
+            <h1 class="judul">Selamat Datang di Perpustakaan Digital PC IPM Panawuan</h1>
+            
+    <div class="feature">
+        <i class="fas fa-user-plus"></i>
+        <h3>Daftar Online</h3>
+        <p>Registrasi anggota IPM mudah</p>
+    </div>
+</div>
+            
+    </div>
+    <!-- Di index.html, tambahkan sebelum script.js -->
+<script>
+// Initialize demo users jika belum ada
+document.addEventListener('DOMContentLoaded', function() {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    if (users.length === 0) {
+        // Create default demo users
+        localStorage.setItem('users', JSON.stringify([
+            {
+                id: 1,
+                username: 'admin',
+                fullname: 'Administrator',
+                password: 'admin123',
+                role: 'admin',
+                status: 'active',
+                rantingName: 'Admin',
+                rantingType: 'Admin',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 2,
+                username: 'user',
+                fullname: 'User Demo',
+                password: 'user123',
+                role: 'user',
+                status: 'active',
+                rantingName: 'Ranting Sekolah',
+                rantingType: 'Ranting Sekolah',
+                createdAt: new Date().toISOString()
+            }
+        ]));
+    }
+});
+
+// Login dengan mengecek registered users
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const selectedRole = document.getElementById('role').value;
+    
+    // Get users dari localStorage
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const user = users.find(u => u.username === username && u.password === password);
+    
+    if (!user) {
+        alert('❌ Username atau password salah!');
+        return;
+    }
+    
+    if (user.role !== selectedRole) {
+        alert('❌ Role yang dipilih tidak sesuai dengan akun ini!');
+        return;
+    }
+    
+    // Set current user
+    localStorage.setItem('currentUser', JSON.stringify({
+        id: user.id,
+        username: user.username,
+        fullname: user.fullname,
+        role: user.role
+    }));
+    
+    alert('✓ Login berhasil!');
+    
+    // Redirect ke dashboard sesuai role
+    if (user.role === 'admin') {
+        window.location.href = 'admin.html';
+    } else {
+        window.location.href = 'dashboard.html';
+    }
+});
+</script>
+    <script src="script.js"></script>
+</body>
+</html>

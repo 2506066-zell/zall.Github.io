@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-book-reader"></i> Perpustakaan PC IPM Panawuan</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-avatar">U</div>
+                    <span id="userName">User</span>
+                </div>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="display: flex;">
+            <!-- Sidebar -->
+            <nav class="dashboard-sidebar">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="books.html" class="nav-item">
+                    <i class="fas fa-book"></i> Daftar Buku
+                </a>
+                <a href="borrow.html" class="nav-item">
+                    <i class="fas fa-hand-holding"></i> Peminjaman
+                </a>
+                <a href="return.html" class="nav-item">
+                    <i class="fas fa-undo"></i> Pengembalian
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="admin.html" class="nav-item" id="adminMenu">
+                    <i class="fas fa-user-cog"></i> Admin
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="index.html" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <!-- Stats Cards -->
+                <div class="stats-container">
+                    <div class="stat-card" data-type="totalBooks">
+                        <div class="stat-icon book">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>0</h3>
+                            <p>Total Buku</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-type="borrowedBooks">
+                        <div class="stat-icon borrow">
+                            <i class="fas fa-hand-holding"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>0</h3>
+                            <p>Buku Dipinjam</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-type="availableBooks">
+                        <div class="stat-icon book">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>0</h3>
+                            <p>Buku Tersedia</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-type="dueBooks">
+                        <div class="stat-icon user">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>0</h3>
+                            <p>Jatuh Tempo</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="table-container">
+                    <h2 class="table-title">Aktivitas Terbaru</h2>
+                    <div class="table-responsive">
+                        <table id="activityTable">
+                            <thead>
+                                <tr>
+                                    <th>Buku</th>
+                                    <th>User</th>
+                                    <th>Aksi</th>
+                                    <th>Tanggal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions" style="margin-top: 30px; display: flex; gap: 15px;">
+                    <button onclick="window.location.href='books.html'" class="btn-action btn-borrow" style="padding: 15px 30px;">
+                        <i class="fas fa-search"></i> Cari Buku
+                    </button>
+                    <button onclick="window.location.href='borrow.html'" class="btn-action btn-borrow" style="padding: 15px 30px;">
+                        <i class="fas fa-hand-holding"></i> Pinjam Buku
+                    </button>
+                    <button onclick="window.location.href='return.html'" class="btn-action btn-return" style="padding: 15px 30px;">
+                        <i class="fas fa-undo"></i> Kembalikan Buku
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Set user name on dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.username;
+                
+                // Hide admin menu untuk user biasa
+                const adminMenu = document.getElementById('adminMenu');
+                if (adminMenu && currentUser.role !== 'admin') {
+                    adminMenu.style.display = 'none';
+                    // Sembunyikan divider juga jika user bukan admin
+                    const prevDivider = adminMenu.previousElementSibling;
+                    if (prevDivider && prevDivider.classList.contains('sidebar-divider')) {
+                        prevDivider.style.display = 'none';
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

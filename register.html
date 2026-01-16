@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar - Perpustakaan IPM</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Additional styles for register page */
+        .register-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-top: 5px solid var(--ipm-yellow);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+        
+        .step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: #e0e0e0;
+            color: #666;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-number {
+            background: var(--ipm-yellow);
+            color: var(--ipm-green);
+        }
+        
+        .step-text {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .step.active .step-text {
+            color: var(--ipm-green);
+            font-weight: 600;
+        }
+        
+        .form-step {
+            display: none;
+        }
+        
+        .form-step.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-header h2 {
+            color: var(--ipm-green);
+            margin-bottom: 10px;
+        }
+        
+        .form-header p {
+            color: #666;
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .btn-next, .btn-prev, .btn-submit {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-next {
+            background: var(--ipm-yellow);
+            color: var(--ipm-green);
+            margin-left: auto;
+        }
+        
+        .btn-prev {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, var(--ipm-green) 0%, var(--ipm-light-green) 100%);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .btn-next:hover, .btn-prev:hover, .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .ranting-info {
+            background: var(--ipm-light-yellow);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid var(--ipm-yellow);
+        }
+        
+        .ranting-info h4 {
+            color: var(--ipm-green);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .register-card {
+                padding: 30px 20px;
+            }
+            
+            .form-footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn-next, .btn-prev, .btn-submit {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-text">Data Dasar</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-text">Ranting</div>
+            </div>
+        </div>
+        
+        <!-- Registration Form -->
+        <div class="register-card">
+            <div class="form-header">
+                <h2><i class="fas fa-user-plus"></i> Pendaftaran Anggota IPM</h2>
+                <p>Isi data diri Anda dengan lengkap dan benar</p>
+            </div>
+            
+            <form id="registerForm">
+                <!-- Step 1: Basic Data -->
+                <div class="form-step active" id="formStep1">
+                    <h3 style="color: var(--ipm-green); margin-bottom: 20px;">
+                        <i class="fas fa-user-circle"></i> Data Dasar
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label class="required"><i class="fas fa-user"></i> Nama Lengkap</label>
+                        <input type="text" id="fullname" placeholder="Masukkan nama lengkap" required>
+                        <div class="error-message" id="fullnameError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required"><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="password" placeholder="Minimal 6 karakter" required>
+                        <div class="error-message" id="passwordError"></div>
+                        <div class="password-strength">
+                            <div class="strength-bar"></div>
+                            <span class="strength-text">Kekuatan password</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required"><i class="fas fa-lock"></i> Konfirmasi Password</label>
+                        <input type="password" id="confirmPassword" placeholder="Ketik ulang password" required>
+                        <div class="error-message" id="confirmPasswordError"></div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Ranting Info -->
+                <div class="form-step" id="formStep2">
+                    <h3 style="color: var(--ipm-green); margin-bottom: 20px;">
+                        <i class="fas fa-school"></i> Asal Ranting
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label class="required"><i class="fas fa-layer-group"></i> Jenis Ranting</label>
+                        <select id="rantingType" required>
+                            <option value="">Pilih Jenis Ranting</option>
+                            <option value="Ranting Sekolah">Ranting Sekolah</option>
+                            <option value="Ranting Masjid">Ranting Masjid</option>
+                        </select>
+                        <div class="error-message" id="rantingTypeError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required"><i class="fas fa-map-pin"></i> Nama Ranting</label>
+                        <input type="text" id="rantingName" placeholder="Contoh: IPM SMA Muhammadiyah 1" required>
+                        <div class="error-message" id="rantingNameError"></div>
+                    </div>
+                    
+                    <!-- Info about Ranting -->
+                    <div class="ranting-info">
+                        <h4><i class="fas fa-info-circle"></i> Apa itu Ranting IPM?</h4>
+                        <p>Ranting adalah unit organisasi IPM di tingkat sekolah atau masjid. Contoh:</p>
+                        <ul>
+                            <li><strong>SMA Muhammadiyah 1 Jakarta</strong> → Ranting Sekolah SMA Muhammadiyah 1 Jakarta</li>
+                            <li><strong>Masjid Al-Hidayah</strong> → Ranting Masjid Al-Hidayah</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="form-group" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                        <h4 style="color: var(--ipm-green); margin-bottom: 15px;">
+                            <i class="fas fa-check-circle"></i> Ringkasan Data
+                        </h4>
+                        <div id="summaryContent" style="color: #666; font-size: 14px;">
+                            Data akan ditampilkan setelah Anda mengisi form
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Footer (Navigation Buttons) -->
+                <div class="form-footer">
+                    <button type="button" class="btn-prev" id="btnPrev" style="display: none;">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </button>
+                    <button type="button" class="btn-next" id="btnNext">
+                        Selanjutnya <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" class="btn-submit" id="btnSubmit" style="display: none;">
+                        <i class="fas fa-check"></i> Daftar Sekarang
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Login Link -->
+            <div style="text-align: center; margin-top: 30px; color: #666;">
+                Sudah punya akun? <a href="index.html" style="color: var(--ipm-green); font-weight: 600;">Login disini</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 500px;">
+            <div style="background: var(--ipm-light-yellow); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fas fa-check" style="font-size: 40px; color: var(--ipm-green);"></i>
+            </div>
+            <h2 style="color: var(--ipm-green); margin-bottom: 15px;">Pendaftaran Berhasil!</h2>
+            <p style="color: #666; margin-bottom: 25px;">
+                Akun Anda telah berhasil dibuat. Silakan login menggunakan username dan password yang telah Anda buat.
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="window.location.href='index.html'" class="btn-action btn-return" style="padding: 12px 30px;">
+                    <i class="fas fa-sign-in-alt"></i> Login Sekarang
+                </button>
+                <button onclick="window.location.href='dashboard.html'" class="btn-action" style="background: var(--ipm-yellow); color: var(--ipm-green); padding: 12px 30px;">
+                    <i class="fas fa-home"></i> Ke Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Step Navigation
+        let currentStep = 1;
+        const totalSteps = 2;
+        
+        // Form data object
+        const formData = {
+            personal: {},
+            ranting: {}
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnSubmit = document.getElementById('btnSubmit');
+            
+            // Step navigation
+            btnNext.addEventListener('click', function() {
+                if (validateStep(currentStep)) {
+                    if (currentStep < totalSteps) {
+                        goToStep(currentStep + 1);
+                    }
+                }
+            });
+            
+            btnPrev.addEventListener('click', function() {
+                goToStep(currentStep - 1);
+            });
+            
+            // Form submission
+            document.getElementById('registerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (validateStep(currentStep)) {
+                    registerUser();
+                }
+            });
+            
+            // Password strength check
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) {
+                passwordInput.addEventListener('input', function() {
+                    checkPasswordStrength(this.value);
+                });
+            }
+            
+            // Update summary on step 2
+            document.getElementById('formStep2').addEventListener('mouseenter', updateSummary);
+        });
+        
+        // Navigate to step
+        function goToStep(step) {
+            document.getElementById(`formStep${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            
+            document.getElementById(`formStep${step}`).classList.add('active');
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnSubmit = document.getElementById('btnSubmit');
+            
+            if (step === 1) {
+                btnPrev.style.display = 'none';
+                btnNext.style.display = 'flex';
+                btnSubmit.style.display = 'none';
+            } else if (step === totalSteps) {
+                btnPrev.style.display = 'flex';
+                btnNext.style.display = 'none';
+                btnSubmit.style.display = 'flex';
+                updateSummary();
+            } else {
+                btnPrev.style.display = 'flex';
+                btnNext.style.display = 'flex';
+                btnSubmit.style.display = 'none';
+            }
+            
+            currentStep = step;
+        }
+        
+        // Validate current step
+        function validateStep(step) {
+            let isValid = true;
+            clearErrors();
+            
+            switch(step) {
+                case 1:
+                    // Validate personal data
+                    if (!document.getElementById('fullname').value.trim()) {
+                        showError('fullnameError', 'Nama lengkap harus diisi');
+                        isValid = false;
+                    }
+                    
+                    const password = document.getElementById('password').value;
+                    if (!password) {
+                        showError('passwordError', 'Password harus diisi');
+                        isValid = false;
+                    } else if (password.length < 6) {
+                        showError('passwordError', 'Password minimal 6 karakter');
+                        isValid = false;
+                    }
+                    
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    if (password !== confirmPassword) {
+                        showError('confirmPasswordError', 'Password tidak cocok');
+                        isValid = false;
+                    }
+                    break;
+                    
+                case 2:
+                    // Validate ranting data
+                    if (!document.getElementById('rantingType').value) {
+                        showError('rantingTypeError', 'Jenis ranting harus dipilih');
+                        isValid = false;
+                    }
+                    
+                    if (!document.getElementById('rantingName').value.trim()) {
+                        showError('rantingNameError', 'Nama ranting harus diisi');
+                        isValid = false;
+                    }
+                    break;
+            }
+            
+            return isValid;
+        }
+        
+        // Save step data
+        function saveStepData(step) {
+            switch(step) {
+                case 1:
+                    formData.personal = {
+                        fullname: document.getElementById('fullname').value,
+                        password: document.getElementById('password').value
+                    };
+                    break;
+                    
+                case 2:
+                    formData.ranting = {
+                        rantingType: document.getElementById('rantingType').value,
+                        rantingName: document.getElementById('rantingName').value
+                    };
+                    break;
+            }
+        }
+        
+        // Register user
+        function registerUser() {
+            saveStepData(currentStep);
+            
+            // Generate username from fullname
+            const username = formData.personal.fullname
+                .toLowerCase()
+                .replace(/\s+/g, '_')
+                .substring(0, 20);
+            
+            // Get existing users
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            
+            // Check if username already exists
+            if (users.find(u => u.username === username)) {
+                alert('❌ Username sudah terdaftar! Silakan ubah nama Anda atau gunakan nama lain.');
+                return;
+            }
+            
+            // Create user object with password included
+            const userData = {
+                id: generateUserId(),
+                username: username,
+                fullname: formData.personal.fullname,
+                password: formData.personal.password,
+                rantingName: formData.ranting.rantingName,
+                rantingType: formData.ranting.rantingType,
+                role: 'user',
+                status: 'active',
+                createdAt: new Date().toISOString()
+            };
+            
+            // Add user to database
+            users.push(userData);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Save current user (logged in after registration)
+            localStorage.setItem('currentUser', JSON.stringify({
+                id: userData.id,
+                username: userData.username,
+                fullname: userData.fullname,
+                role: userData.role,
+                rantingName: userData.rantingName
+            }));
+            
+            // Show success modal
+            openModal('successModal');
+        }
+        
+        // Generate unique user ID
+        function generateUserId() {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            return users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+        }
+        
+        // Update summary
+        function updateSummary() {
+            saveStepData(1);
+            
+            const summaryContent = document.getElementById('summaryContent');
+            const summaryHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
+                    <div>
+                        <strong>Nama Lengkap:</strong><br>
+                        ${formData.personal.fullname || '-'}
+                    </div>
+                    <div>
+                        <strong>Username:</strong><br>
+                        ${formData.personal.fullname.toLowerCase().replace(/\s+/g, '_').substring(0, 20) || '-'}
+                    </div>
+                    <div>
+                        <strong>Jenis Ranting:</strong><br>
+                        ${formData.ranting.rantingType || '-'}
+                    </div>
+                    <div>
+                        <strong>Nama Ranting:</strong><br>
+                        ${formData.ranting.rantingName || '-'}
+                    </div>
+                </div>
+            `;
+            
+            summaryContent.innerHTML = summaryHTML;
+        }
+        
+        // Helper functions
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            }
+        }
+        
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.innerHTML = '';
+            });
+        }
+        
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const strengthBar = document.querySelector('.strength-bar');
+            const strengthText = document.querySelector('.strength-text');
+            
+            if (!strengthBar || !strengthText) return;
+            
+            if (password.length >= 6) strength++;
+            if (password.length >= 10) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            let color, text;
+            if (strength <= 2) {
+                color = '#dc3545';
+                text = 'Lemah';
+            } else if (strength <= 4) {
+                color = '#ffc107';
+                text = 'Sedang';
+            } else {
+                color = '#28a745';
+                text = 'Kuat';
+            }
+            
+            strengthBar.style.width = `${(strength / 6) * 100}%`;
+            strengthBar.style.height = '5px';
+            strengthBar.style.background = color;
+            strengthBar.style.borderRadius = '5px';
+            strengthBar.style.transition = 'width 0.3s';
+            strengthText.textContent = `Kekuatan: ${text}`;
+            strengthText.style.color = color;
+            strengthText.style.fontSize = '12px';
+            strengthText.style.marginTop = '5px';
+            strengthText.style.display = 'block';
+        }
+        
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+    </script>
+</body>
+</html>

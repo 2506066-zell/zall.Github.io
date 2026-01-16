@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peminjaman Buku - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-hand-holding"></i> Peminjaman Buku</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-avatar">U</div>
+                    <span id="userName">User</span>
+                </div>
+                <button onclick="window.location.href='dashboard.html'" class="btn-action">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="display: flex;">
+            <!-- Sidebar -->
+            <nav class="dashboard-sidebar">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="books.html" class="nav-item">
+                    <i class="fas fa-book"></i> Daftar Buku
+                </a>
+                <a href="borrow.html" class="nav-item active">
+                    <i class="fas fa-hand-holding"></i> Peminjaman
+                </a>
+                <a href="return.html" class="nav-item">
+                    <i class="fas fa-undo"></i> Pengembalian
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="admin.html" class="nav-item" id="adminMenu">
+                    <i class="fas fa-user-cog"></i> Admin
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="index.html" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <!-- Borrow Selection -->
+                <div class="book-selection-container">
+                    <h2 class="section-title"><i class="fas fa-search"></i> Pilih Buku untuk Dipinjam</h2>
+                    <div class="book-grid" id="bookGrid">
+                        <!-- Book cards akan diisi oleh JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Borrow History -->
+                <div class="borrow-history-container" style="margin-top: 50px;">
+                    <h2 class="section-title"><i class="fas fa-history"></i> Riwayat Peminjaman Saya</h2>
+                    <div class="borrow-cards-container" id="borrowCardsContainer">
+                        <!-- Borrow cards akan diisi oleh JavaScript -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Borrow Modal -->
+    <div id="borrowModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Pinjam Buku</h2>
+                <button class="close-modal" onclick="closeModal('borrowModal')">&times;</button>
+            </div>
+            <form id="borrowForm" onsubmit="submitBorrow(event)">
+                <div id="bookDetailModal" style="margin-bottom: 20px; padding: 15px; background: var(--ipm-light-green); border-radius: 8px;">
+                    <p style="font-weight: 600; color: var(--ipm-green); margin: 0;"><span id="modalBookTitle">Judul Buku</span></p>
+                    <small style="color: #666;"><span id="modalBookAuthor">Penulis</span></small>
+                </div>
+                <div class="form-group">
+                    <label for="borrowDuration"><i class="fas fa-calendar"></i> Durasi Peminjaman</label>
+                    <select id="borrowDuration" required>
+                        <option value="">Pilih durasi</option>
+                        <option value="7">7 hari</option>
+                        <option value="14">14 hari</option>
+                        <option value="21">21 hari</option>
+                        <option value="30">30 hari</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="borrowNotes"><i class="fas fa-sticky-note"></i> Catatan (Opsional)</label>
+                    <textarea id="borrowNotes" placeholder="Tambahkan catatan pinjaman..." rows="3" style="border: 1px solid #ddd; padding: 10px; border-radius: 4px; font-family: inherit;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-camera"></i> Foto Buku (Wajib)</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" class="btn-action btn-borrow" style="flex: 1;" onclick="captureBookPhoto()">
+                            <i class="fas fa-camera"></i> Ambil Foto
+                        </button>
+                        <button type="button" class="btn-action" style="flex: 1; background: var(--ipm-yellow); color: var(--ipm-green);" onclick="uploadBookPhoto()">
+                            <i class="fas fa-upload"></i> Upload Foto
+                        </button>
+                    </div>
+                    <input type="file" id="bookPhotoInput" accept="image/*" style="display: none;">
+                    <div id="photoPreview" style="display: none; margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 8px; text-align: center;">
+                        <img id="photoImage" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                        <p id="photoStatus" style="margin: 10px 0 0 0; font-size: 14px; color: var(--ipm-green); font-weight: 600;"></p>
+                    </div>
+                </div>
+                <button type="submit" class="btn-action btn-borrow" style="width: 100%;">
+                    <i class="fas fa-check"></i> Konfirmasi Peminjaman
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let selectedBookId = null;
+        let bookPhotoData = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.username;
+                
+                // Hide admin menu untuk user biasa
+                const adminMenu = document.getElementById('adminMenu');
+                if (adminMenu && currentUser.role !== 'admin') {
+                    adminMenu.style.display = 'none';
+                    const prevDivider = adminMenu.previousElementSibling;
+                    if (prevDivider && prevDivider.classList.contains('sidebar-divider')) {
+                        prevDivider.style.display = 'none';
+                    }
+                }
+            }
+
+            // Load books grid
+            loadBookGrid();
+            
+            // Load borrow history
+            loadBorrowCardsHistory();
+            
+            // File input listener
+            document.getElementById('bookPhotoInput').addEventListener('change', function(e) {
+                handlePhotoUpload(e.target.files[0]);
+            });
+        });
+
+        function loadBookGrid() {
+            const books = getBooks();  // Ambil dari localStorage via script.js
+            const bookGrid = document.getElementById('bookGrid');
+            
+            if (!books || books.length === 0) {
+                bookGrid.innerHTML = '<p style="text-align: center; padding: 30px; color: #999;">Belum ada buku tersedia</p>';
+                return;
+            }
+            
+            bookGrid.innerHTML = books.map(book => {
+                // Generate emoji cover berdasarkan kategori
+                const categoryEmojis = {
+                    'Programming': '📕',
+                    'Teknologi': '📕',
+                    'Data Science': '📗',
+                    'AI': '📘',
+                    'Web': '📙',
+                    'Web Development': '📙',
+                    'Database': '📕',
+                    'Cloud': '📗',
+                    'Machine Learning': '📘'
+                };
+                
+                const cover = categoryEmojis[book.category] || '📚';
+                
+                // Determine status badge
+                const isAvailable = book.status === 'tersedia';
+                const statusBadge = isAvailable 
+                    ? '<span class="badge" style="background: #d4edda; color: #155724; font-size: 12px;">✓ Tersedia</span>'
+                    : '<span class="badge" style="background: #f8d7da; color: #721c24; font-size: 12px;">⊗ Dipinjam</span>';
+                
+                const buttonDisabled = isAvailable ? '' : 'disabled';
+                const buttonStyle = isAvailable ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.6;';
+                
+                return `
+                    <div class="book-card" onclick="${isAvailable ? `selectBookForBorrow(${book.id})` : ''}'" style="${!isAvailable ? 'opacity: 0.7;' : ''}">
+                        <div class="book-cover">${cover}</div>
+                        <div class="book-info">
+                            <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 8px;">
+                                <h3 style="flex: 1; margin: 0;">${book.title}</h3>
+                                ${statusBadge}
+                            </div>
+                            <p class="book-author">${book.author}</p>
+                            <span class="book-category">${book.category}</span>
+                            <button type="button" class="btn-action btn-borrow btn-small" ${buttonDisabled} style="${buttonStyle}" onclick="event.stopPropagation(); ${isAvailable ? `selectBookForBorrow(${book.id})` : 'alert(\"Buku sedang dipinjam orang lain\")'}">
+                                <i class="fas fa-hand-holding"></i> ${isAvailable ? 'Pinjam' : 'Tidak Tersedia'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectBookForBorrow(bookId) {
+            selectedBookId = bookId;
+            const books = getBooks();  // Ambil dari localStorage
+            const book = books.find(b => b.id === bookId);
+            
+            if (!book) {
+                alert('Buku tidak ditemukan');
+                return;
+            }
+            
+            // Validasi status
+            if (book.status !== 'tersedia') {
+                alert('❌ Buku sedang dipinjam orang lain. Tidak bisa dipinjam saat ini.');
+                return;
+            }
+            
+            document.getElementById('modalBookTitle').textContent = book.title;
+            document.getElementById('modalBookAuthor').textContent = book.author;
+            document.getElementById('borrowDuration').value = '';
+            document.getElementById('borrowNotes').value = '';
+            document.getElementById('photoPreview').style.display = 'none';
+            
+            openModal('borrowModal');
+        }
+
+        function submitBorrow(event) {
+            event.preventDefault();
+            
+            const duration = document.getElementById('borrowDuration').value;
+            const notes = document.getElementById('borrowNotes').value;
+            
+            if (!duration) {
+                alert('Pilih durasi peminjaman terlebih dahulu!');
+                return;
+            }
+            
+            // Validasi foto buku (wajib)
+            if (!bookPhotoData) {
+                alert('❌ Foto buku wajib diupload atau diambil terlebih dahulu!');
+                return;
+            }
+
+            const books = getBooks();  // Ambil dari localStorage
+            const book = books.find(b => b.id === selectedBookId);
+            
+            if (!book) {
+                alert('Buku tidak ditemukan');
+                return;
+            }
+            
+            const borrowDate = new Date();
+            const dueDate = new Date(borrowDate);
+            dueDate.setDate(dueDate.getDate() + parseInt(duration));
+
+            // Get existing borrows from localStorage
+            let borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+            
+            // Get current user
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // Create new borrow record
+            const newBorrow = {
+                id: Math.max(...borrows.map(b => b.id), 0) + 1,
+                username: currentUser.username,
+                bookId: selectedBookId,
+                book: book.title,
+                author: book.author,
+                borrowDate: borrowDate.toLocaleDateString('id-ID'),
+                dueDate: dueDate.toLocaleDateString('id-ID'),
+                status: 'Aktif',
+                notes: notes,
+                bookPhoto: bookPhotoData  // Simpan foto dengan format base64
+            };
+
+            borrows.push(newBorrow);
+            localStorage.setItem('userBorrows', JSON.stringify(borrows));
+
+            alert(`✓ Berhasil meminjam "${book.title}"\nJatuh tempo: ${newBorrow.dueDate}`);
+            
+            // Reset foto
+            bookPhotoData = null;
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('bookPhotoInput').value = '';
+            
+            closeModal('borrowModal');
+            loadBorrowCardsHistory();
+        }
+        
+        // Photo Functions
+        function captureBookPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';  // Trigger camera on mobile
+            
+            input.onchange = function(e) {
+                if (e.target.files[0]) {
+                    handlePhotoUpload(e.target.files[0]);
+                }
+            };
+            
+            input.click();
+        }
+        
+        function uploadBookPhoto() {
+            document.getElementById('bookPhotoInput').click();
+        }
+        
+        function handlePhotoUpload(file) {
+            if (!file) return;
+            
+            // Validasi tipe file
+            if (!file.type.startsWith('image/')) {
+                alert('❌ File harus berupa gambar (JPG, PNG, dll)!');
+                return;
+            }
+            
+            // Validasi ukuran (max 2MB)
+            const maxSize = 2 * 1024 * 1024;  // 2MB
+            if (file.size > maxSize) {
+                alert('❌ Ukuran foto terlalu besar (maksimal 2MB)!');
+                return;
+            }
+            
+            // Convert ke base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                bookPhotoData = e.target.result;
+                
+                // Preview
+                const previewDiv = document.getElementById('photoPreview');
+                const photoImg = document.getElementById('photoImage');
+                const photoStatus = document.getElementById('photoStatus');
+                
+                photoImg.src = bookPhotoData;
+                photoStatus.textContent = '✓ Foto berhasil ditambahkan';
+                previewDiv.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function loadBorrowCardsHistory() {
+            const container = document.getElementById('borrowCardsContainer');
+            const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+
+            if (borrows.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 30px;">Belum ada riwayat peminjaman</p>';
+                return;
+            }
+
+            container.innerHTML = borrows.map(borrow => {
+                const dueDate = new Date(borrow.dueDate);
+                const today = new Date();
+                const isLate = today > dueDate && borrow.status === 'Aktif';
+                const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                return `
+                    <div class="borrow-card ${isLate ? 'late' : ''}">
+                        <div class="borrow-card-header">
+                            <h3>${borrow.book}</h3>
+                            <span class="badge ${borrow.status === 'Aktif' ? 'badge-active' : 'badge-late'}">
+                                ${isLate ? 'TERLAMBAT' : borrow.status}
+                            </span>
+                        </div>
+                        <div class="borrow-card-body">
+                            <p><i class="fas fa-user-pen"></i> <strong>Penulis:</strong> ${borrow.author}</p>
+                            <p><i class="fas fa-calendar-plus"></i> <strong>Tanggal Pinjam:</strong> ${borrow.borrowDate}</p>
+                            <p><i class="fas fa-calendar-check"></i> <strong>Jatuh Tempo:</strong> ${borrow.dueDate}</p>
+                            ${borrow.notes ? `<p><i class="fas fa-note-sticky"></i> <strong>Catatan:</strong> ${borrow.notes}</p>` : ''}
+                            ${borrow.status === 'Aktif' ? `<p style="color: ${isLate ? '#d32f2f' : '#1a7d3d'}; font-weight: 600;"><i class="fas fa-hourglass-end"></i> Sisa: <strong>${isLate ? 'TERLAMBAT ' + Math.abs(daysLeft) + ' hari' : daysLeft + ' hari'}</strong></p>` : ''}
+                        </div>
+                        <div class="borrow-card-actions">
+                            <button type="button" class="btn-action btn-small" onclick="extendBorrow(${borrow.id})">
+                                <i class="fas fa-redo"></i> Perpanjang
+                            </button>
+                            <button type="button" class="btn-action btn-small btn-return" onclick="markAsReturned(${borrow.id})">
+                                <i class="fas fa-check"></i> Kembalikan
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function extendBorrow(borrowId) {
+            const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+            const borrow = borrows.find(b => b.id === borrowId);
+            
+            if (!borrow) return;
+
+            if (confirm(`Perpanjang peminjaman "${borrow.book}" selama 7 hari?`)) {
+                const currentDue = new Date(borrow.dueDate);
+                currentDue.setDate(currentDue.getDate() + 7);
+                borrow.dueDate = currentDue.toLocaleDateString('id-ID');
+
+                localStorage.setItem('userBorrows', JSON.stringify(borrows));
+                alert('✓ Peminjaman berhasil diperpanjang!');
+                loadBorrowCardsHistory();
+            }
+        }
+
+        function markAsReturned(borrowId) {
+            const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+            const borrow = borrows.find(b => b.id === borrowId);
+            
+            if (!borrow) return;
+
+            if (confirm(`Tandai "${borrow.book}" sebagai dikembalikan?`)) {
+                borrow.status = 'Dikembalikan';
+                localStorage.setItem('userBorrows', JSON.stringify(borrows));
+                alert('✓ Terima kasih telah mengembalikan buku!');
+                loadBorrowCardsHistory();
+            }
+        }
+    </script>
+</body>
+</html>

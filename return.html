@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengembalian Buku - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-undo"></i> Pengembalian Buku</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-avatar">U</div>
+                    <span id="userName">User</span>
+                </div>
+                <button onclick="window.location.href='dashboard.html'" class="btn-action">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="display: flex;">
+            <!-- Sidebar -->
+            <nav class="dashboard-sidebar">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="books.html" class="nav-item">
+                    <i class="fas fa-book"></i> Daftar Buku
+                </a>
+                <a href="borrow.html" class="nav-item">
+                    <i class="fas fa-hand-holding"></i> Peminjaman
+                </a>
+                <a href="return.html" class="nav-item active">
+                    <i class="fas fa-undo"></i> Pengembalian
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="admin.html" class="nav-item" id="adminMenu">
+                    <i class="fas fa-user-cog"></i> Admin
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="index.html" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <!-- Return Form -->
+                <div class="table-container" style="margin-bottom: 30px;">
+                    <h2 class="table-title">Kembalikan Buku</h2>
+                    <form id="returnForm">
+                        <div class="form-group">
+                            <label>ID Peminjaman</label>
+                            <input type="text" placeholder="Masukkan ID peminjaman" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Kondisi Buku</label>
+                            <select required>
+                                <option value="">-- Pilih Kondisi --</option>
+                                <option value="baik">Baik</option>
+                                <option value="rusak_ringan">Rusak Ringan</option>
+                                <option value="rusak_berat">Rusak Berat</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-action btn-return" style="width: 100%;">
+                            <i class="fas fa-undo"></i> Kembalikan Buku
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Return History -->
+                <div class="table-container">
+                    <h2 class="table-title">Riwayat Pengembalian</h2>
+                    <div class="table-responsive">
+                        <table id="returnTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Buku</th>
+                                    <th>Tanggal Pinjam</th>
+                                    <th>Tanggal Kembali</th>
+                                    <th>Denda</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.username;
+                
+                // Hide admin menu untuk user biasa
+                const adminMenu = document.getElementById('adminMenu');
+                if (adminMenu && currentUser.role !== 'admin') {
+                    adminMenu.style.display = 'none';
+                    const prevDivider = adminMenu.previousElementSibling;
+                    if (prevDivider && prevDivider.classList.contains('sidebar-divider')) {
+                        prevDivider.style.display = 'none';
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

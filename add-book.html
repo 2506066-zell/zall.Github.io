@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Buku - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body onload="checkAdminAccess()">
+    <script>
+        // Check if user is admin - Proteksi halaman
+        function checkAdminAccess() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                alert('Anda harus login terlebih dahulu!');
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            if (currentUser.role !== 'admin') {
+                alert('Anda tidak memiliki akses ke halaman ini. Hanya admin yang bisa akses.');
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+            
+            return true;
+        }
+    </script>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-plus-circle"></i> Tambah Buku Baru</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <span>Admin</span>
+                </div>
+                <button onclick="window.location.href='admin.html'" class="btn-action">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="display: flex;">
+            <!-- Sidebar -->
+            <nav class="dashboard-sidebar">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="books.html" class="nav-item">
+                    <i class="fas fa-book"></i> Daftar Buku
+                </a>
+                <a href="add-book.html" class="nav-item active">
+                    <i class="fas fa-plus-circle"></i> Tambah Buku
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i class="fas fa-user-cog"></i> Admin
+                </a>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <div class="table-container">
+                    <h2 class="table-title">Form Tambah Buku</h2>
+                    <form id="addBookFormDetailed">
+                        <div style=>
+                            <div class="form-group">
+                                <label>Judul Buku *</label>
+                                <input type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Penulis *</label>
+                                <input type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label>ISBN</label>
+                                <input type="text">
+                            </div>
+                            <div class="form-group">
+                                <label>Penerbit</label>
+                                <input type="text">
+                            </div>
+                            <div class="form-group">
+                                <label>Tahun Terbit *</label>
+                                <input type="number" min="1900" max="2024" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Kategori *</label>
+                                <select required>
+                                    <option value="">Pilih Kategori</option>
+                                    <option value="programming">Programming</option>
+                                    <option value="data-science">Data Science</option>
+                                    <option value="web">Web Development</option>
+                                    <option value="ai">Artificial Intelligence</option>
+                                    <option value="database">Database</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Jumlah Halaman</label>
+                                <input type="number">
+                            </div>
+                            <div class="form-group">
+                                <label>Bahasa</label>
+                                <select>
+                                    <option value="indonesia">Indonesia</option>
+                                    <option value="english">English</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Deskripsi</label>
+                            <textarea rows="4" placeholder="Deskripsi singkat tentang buku..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Cover Buku (URL)</label>
+                            <input type="url" placeholder="https://example.com/cover.jpg">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select required>
+                                <option value="available">Tersedia</option>
+                                <option value="borrowed">Dipinjam</option>
+                                <option value="maintenance">Dalam Perbaikan</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Lokasi Rak</label>
+                            <input type="text" placeholder="Contoh: Rak A-12">
+                        </div>
+                        
+                        <button type="submit" class="btn-action btn-return" style="width: 100%;">
+                            <i class="fas fa-save"></i> Simpan Buku
+                        </button>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('addBookFormDetailed').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Buku berhasil ditambahkan!');
+            window.location.href = 'books.html';
+        });
+    </script>
+   
+<!-- Tambahkan script ini di akhir body -->
+<script>
+    // Tangani submit form
+    document.getElementById('addBookFormDetailed').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addBookDetailed();
+    });
+</script>
+</body>
+</html>

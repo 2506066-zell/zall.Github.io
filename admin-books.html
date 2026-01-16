@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Status Peminjaman</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="adminBooksPage">
+
+<div class="dashboard-container">
+
+    <h1>Status Buku</h1>
+    <p>Monitoring peminjaman buku</p>
+
+    <table class="book-table">
+        <thead>
+            <tr>
+                <th>Judul Buku</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="bookTableBody"></tbody>
+    </table>
+
+    <a href="admin.html" class="back-link">Kembali</a>
+
+</div>
+
+<script>
+    if (localStorage.getItem("role") !== "admin") {
+        window.location.href = "index.html";
+    }
+
+    const books = JSON.parse(localStorage.getItem("books")) || [];
+    const tbody = document.getElementById("bookTableBody");
+
+    books.forEach(book => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${book.title}</td>
+            <td class="${book.status === 'tersedia' ? 'available' : 'borrowed'}">
+                ${book.status}
+            </td>
+        `;
+
+        tbody.appendChild(row);
+    });
+</script>
+
+</body>
+</html>

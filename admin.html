@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<script>
+// Check if user is admin - Proteksi halaman admin
+function checkAdminAccess() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    if (!currentUser) {
+        // Belum login
+        alert('Anda harus login terlebih dahulu!');
+        window.location.href = 'index.html';
+        return false;
+    }
+    
+    if (currentUser.role !== 'admin') {
+        // Bukan admin
+        alert('Anda tidak memiliki akses ke halaman ini. Hanya admin yang bisa akses.');
+        window.location.href = 'dashboard.html';
+        return false;
+    }
+    
+    return true;
+}
+
+// Load Users
+function loadUsers() {
+    try {
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        
+        // Update stats
+        document.getElementById('totalUsers').textContent = users.length;
+        const uniqueRanting = [...new Set(users.map(u => u.rantingName).filter(Boolean))];
+        document.getElementById('totalRanting').textContent = uniqueRanting.length;
+        const activeUsers = users.filter(u => u.status === 'active').length;
+        document.getElementById('activeUsers').textContent = activeUsers;
+        
+        // Populate filter
+        const rantingFilter = document.getElementById('filterRanting');
+        rantingFilter.innerHTML = '<option value="">Semua Ranting</option>';
+        uniqueRanting.forEach(ranting => {
+            if (ranting) rantingFilter.innerHTML += `<option value="${ranting}">${ranting}</option>`;
+        });
+        
+        displayUsers(users);
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+function displayUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="no-data"><i class="fas fa-user-slash"></i> Belum ada anggota</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = users.map(user => {
+        const isCurrentUser = currentUser && currentUser.id == user.id;
+        const canDelete = !isCurrentUser && user.role !== 'admin';
+        
+        return `<tr>
+            <td>${user.id}</td>
+            <td><strong>${user.username}</strong>${isCurrentUser ? '<br><small style="color: var(--ipm-yellow);">(Anda)</small>' : ''}</td>
+            <td>${user.fullname || '-'}</td>
+            <td><span class="badge" style="background: #e9ecef; color: #495057;">${user.rantingName || 'Tidak ada'}</span></td>
+            <td>${user.school || '-'}</td>
+            <td><span class="badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">${user.role}</span></td>
+            <td><span class="badge ${user.status === 'active' ? 'badge-available' : 'badge-borrowed'}">${user.status}</span></td>
+            <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}</td>
+            <td>
+                <div class="table-actions">
+                    <button class="btn-action btn-borrow" onclick="viewUserDetail(${user.id})" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-action" onclick="editUser(${user.id})" title="Edit" style="background: #ffc107;"><i class="fas fa-edit"></i></button>
+                    ${canDelete ? `<button class="btn-action btn-delete" onclick="confirmAndDeleteUser(${user.id}, '${user.username}', '${user.fullname}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
+                    ${!isCurrentUser && user.role !== 'admin' ? `<button class="btn-action btn-return" onclick="toggleUserStatus(${user.id}, '${user.username}')"><i class="fas fa-power-off"></i></button>` : ''}
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function searchUsers() {
+    const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+    const rantingFilter = document.getElementById('filterRanting').value;
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    
+    if (searchTerm) {
+        users = users.filter(user => 
+            user.username.toLowerCase().includes(searchTerm) ||
+            user.fullname.toLowerCase().includes(searchTerm) ||
+            user.email.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (rantingFilter) {
+        users = users.filter(user => user.rantingName === rantingFilter);
+    }
+    
+    displayUsers(users);
+}
+
+function viewUserDetail(userId) {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+        alert('User tidak ditemukan');
+        return;
+    }
+    
+    // Create modal content
+    const modalContent = `
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--ipm-yellow) 0%, var(--ipm-gold) 100%); 
+                    border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--ipm-green); font-weight: bold;">
+                    ${user.fullname ? user.fullname.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                    <h3 style="color: var(--ipm-green); margin-bottom: 5px;">${user.fullname || '-'}</h3>
+                    <p style="color: #666;">${user.username} • ${user.email || '-'}</p>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                        <i class="fas fa-id-card"></i> Data Pribadi
+                    </h4>
+                    <p><strong>NIS/NIM:</strong> ${user.nis || '-'}</p>
+                    <p><strong>WhatsApp:</strong> ${user.phone || '-'}</p>
+                    <p><strong>Alamat:</strong> ${user.address || '-'}</p>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                        <i class="fas fa-school"></i> Keanggotaan IPM
+                    </h4>
+                    <p><strong>Ranting:</strong> ${user.rantingName || '-'}</p>
+                    <p><strong>Jenis:</strong> ${user.rantingType || '-'}</p>
+                    <p><strong>Sekolah/Kampus:</strong> ${user.school || '-'}</p>
+                    <p><strong>Jabatan:</strong> ${user.position || 'Anggota'}</p>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                    <i class="fas fa-chart-line"></i> Aktivitas
+                </h4>
+                <p><strong>Role:</strong> <span class="badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">${user.role}</span></p>
+                <p><strong>Status:</strong> <span class="badge ${user.status === 'active' ? 'badge-available' : 'badge-borrowed'}">${user.status}</span></p>
+                <p><strong>Bergabung:</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}</p>
+                <p><strong>Login Terakhir:</strong> ${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('id-ID') : 'Belum login'}</p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="editUser(${user.id})" class="btn-action" style="background: #ffc107; color: #212529; flex: 1;">
+                    <i class="fas fa-edit"></i> Edit User
+                </button>
+                <button onclick="resetUserPassword(${user.id})" class="btn-action btn-return" style="flex: 1;">
+                    <i class="fas fa-key"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Create or update modal
+    let modal = document.getElementById('userDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'userDetailModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-user"></i> Detail Anggota</h2>
+                    <button class="close-modal" onclick="closeModal('userDetailModal')">&times;</button>
+                </div>
+                <div id="userDetailContent"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('userDetailContent').innerHTML = modalContent;
+    openModal('userDetailModal');
+}
+
+// Fungsi toggle status user yang diperbaiki
+function toggleUserStatus(userId, username) {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const userIndex = users.findIndex(u => u.id == userId);
+    
+    if (userIndex === -1) {
+        alert('User tidak ditemukan!');
+        return;
+    }
+    
+    const user = users[userIndex];
+    const currentStatus = user.status;
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'mengaktifkan' : 'menonaktifkan';
+    
+    // Konfirmasi
+    if (!confirm(`Apakah Anda yakin ingin ${action} user "${username}"?`)) {
+        return;
+    }
+    
+    // Update status
+    users[userIndex].status = newStatus;
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // Log aktivitas
+    const logs = JSON.parse(localStorage.getItem('logs')) || [];
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    logs.push({
+        action: 'toggle_user_status',
+        user: currentUser.username,
+        details: `${action} user: ${username} (${user.fullname})`,
+        timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('logs', JSON.stringify(logs));
+    
+    // Refresh tampilan
+    alert(`User "${username}" berhasil di${action}!`);
+    loadUsers();
+}
+
+function deleteUser(userId) {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const userIndex = users.findIndex(u => u.id === userId);
+    
+    if (userIndex !== -1 && users[userIndex].role !== 'admin') {
+        if (confirm(`Apakah Anda yakin ingin menghapus user "${users[userIndex].username}"?`)) {
+            // Get username for password removal
+            const username = users[userIndex].username;
+            
+            // Remove user from array
+            users.splice(userIndex, 1);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Remove password
+            const passwords = JSON.parse(localStorage.getItem('user_passwords')) || {};
+            delete passwords[username];
+            localStorage.setItem('user_passwords', JSON.stringify(passwords));
+            
+            alert('User berhasil dihapus!');
+            loadUsers();
+        }
+    } else {
+        alert('Admin user tidak dapat dihapus!');
+    }
+}
+
+function resetUserPassword(userId) {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const user = users.find(u => u.id === userId);
+    
+    if (user) {
+        const newPassword = prompt(`Reset password untuk ${user.username}\nMasukkan password baru:`, 'ipm12345');
+        
+        if (newPassword && newPassword.length >= 6) {
+            // Update password in storage
+            const passwords = JSON.parse(localStorage.getItem('user_passwords')) || {};
+            passwords[user.username] = newPassword;
+            localStorage.setItem('user_passwords', JSON.stringify(passwords));
+            
+            alert(`Password untuk ${user.username} berhasil direset!`);
+        } else if (newPassword) {
+            alert('Password minimal 6 karakter!');
+        }
+    }
+}
+
+function exportUsersToCSV() {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const headers = ['ID', 'Username', 'Nama Lengkap', 'Email', 'Ranting', 'Sekolah', 'Role', 'Status', 'Tanggal Daftar'];
+    const rows = [
+        headers.join(','),
+        ...users.map(user => [
+            user.id,
+            `"${user.username}"`,
+            `"${user.fullname}"`,
+            `"${user.email || ''}"`,
+            `"${user.rantingName || ''}"`,
+            `"${user.school || ''}"`,
+            `"${user.role}"`,
+            `"${user.status}"`,
+            `"${user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : ''}"`
+        ].join(','))
+    ];
+    
+    const csvContent = rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `anggota-ipm-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname.includes('admin.html')) {
+        // Initialize with dummy data if empty
+        initializeDummyData();
+        loadUsers();
+        updateBorrowStats();
+        
+        // Set admin name
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser) {
+            document.getElementById('adminName').textContent = currentUser.username;
+        }
+    }
+});
+
+function initializeDummyData() {
+    // Initialize dummy borrow data for testing
+    const existingBorrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+    
+    if (existingBorrows.length === 0) {
+        const dummyBorrows = [
+            {
+                id: 1,
+                username: 'user',
+                bookId: 1,
+                book: 'Pemrograman JavaScript',
+                author: 'Kyle Simpson',
+                borrowDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                status: 'Aktif',
+                notes: 'Buku untuk referensi project'
+            },
+            {
+                id: 2,
+                username: 'user',
+                bookId: 2,
+                book: 'Data Science Handbook',
+                author: 'Jake VanderPlas',
+                borrowDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                dueDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                status: 'Aktif',
+                notes: 'Untuk belajar data science'
+            },
+            {
+                id: 3,
+                username: 'user',
+                bookId: 3,
+                book: 'Machine Learning Basics',
+                author: 'Andrew Ng',
+                borrowDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                dueDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+                status: 'Dikembalikan',
+                notes: ''
+            }
+        ];
+        localStorage.setItem('userBorrows', JSON.stringify(dummyBorrows));
+    }
+}
+
+function switchAdminTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.admin-tab-content');
+    tabContents.forEach(tab => tab.style.display = 'none');
+    
+    // Remove active class from all tabs
+    const tabBtns = document.querySelectorAll('.admin-tab-btn');
+    tabBtns.forEach(btn => {
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = '#666';
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+        
+        // Add active class to clicked tab
+        event.target.closest('.admin-tab-btn').style.borderBottomColor = 'var(--ipm-green)';
+        event.target.closest('.admin-tab-btn').style.color = 'var(--ipm-green)';
+        
+        // Load data for borrow section
+        if (tabName === 'borrow-section') {
+            loadBorrowHistory();
+            updateBorrowStats();
+        }
+    }
+}
+
+function updateBorrowStats() {
+    const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+    const today = new Date();
+    
+    const activeBorrows = borrows.filter(b => b.status === 'Aktif').length;
+    const lateBorrows = borrows.filter(b => {
+        const dueDate = new Date(b.dueDate);
+        return b.status === 'Aktif' && today > dueDate;
+    }).length;
+    
+    document.getElementById('totalBorrows').textContent = borrows.length;
+    document.getElementById('activeBorrows').textContent = activeBorrows;
+    document.getElementById('lateBorrows').textContent = lateBorrows;
+}
+
+// ==================== BORROW HISTORY FUNCTIONS ====================
+
+function loadBorrowHistory() {
+    const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    
+    const tbody = document.getElementById('borrowHistoryTableBody');
+    
+    if (borrows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="no-data"><i class="fas fa-inbox"></i> Belum ada riwayat peminjaman</td></tr>`;
+        return;
+    }
+    
+    // Sort by date (newest first)
+    const sortedBorrows = borrows.sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate));
+    
+    tbody.innerHTML = sortedBorrows.map(borrow => {
+        const user = users.find(u => u.username === borrow.username) || { fullname: 'Unknown User' };
+        const dueDate = new Date(borrow.dueDate);
+        const today = new Date();
+        const isLate = today > dueDate && borrow.status === 'Aktif';
+        const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+        
+        let statusBadge = '';
+        let statusClass = '';
+        
+        if (borrow.status === 'Aktif') {
+            statusBadge = isLate ? '<span class="badge badge-late">TERLAMBAT</span>' : '<span class="badge badge-active">Aktif</span>';
+            statusClass = isLate ? 'late' : '';
+        } else {
+            statusBadge = '<span class="badge" style="background: #d4edda; color: #155724;">Dikembalikan</span>';
+        }
+        
+        return `<tr class="${statusClass}">
+            <td>${borrow.id}</td>
+            <td><strong>${borrow.username}</strong><br><small>${user.fullname}</small></td>
+            <td>${borrow.book}</td>
+            <td><small>${borrow.author}</small></td>
+            <td>${borrow.borrowDate}</td>
+            <td>${borrow.dueDate}</td>
+            ${isLate && borrow.status === 'Aktif' ? `<td style="color: #d32f2f; font-weight: 600;">Terlambat ${Math.abs(daysLeft)} hari</td>` : `<td>${daysLeft} hari</td>`}
+            <td>${statusBadge}</td>
+            <td>${borrow.notes ? '<i class="fas fa-comment"></i>' : '-'}</td>
+            <td>
+                <button class="btn-action btn-borrow" onclick="viewBorrowDetail(${borrow.id})" title="Lihat Detail">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function viewBorrowDetail(borrowId) {
+    const borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+    const borrow = borrows.find(b => b.id === borrowId);
+    
+    if (!borrow) {
+        alert('Data peminjaman tidak ditemukan');
+        return;
+    }
+    
+    const dueDate = new Date(borrow.dueDate);
+    const today = new Date();
+    const isLate = today > dueDate && borrow.status === 'Aktif';
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    
+    const modalContent = `
+        <div style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                        <i class="fas fa-user"></i> Informasi Peminjam
+                    </h4>
+                    <p><strong>Username:</strong> ${borrow.username}</p>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                        <i class="fas fa-book"></i> Informasi Buku
+                    </h4>
+                    <p><strong>Judul:</strong> ${borrow.book}</p>
+                    <p><strong>Penulis:</strong> ${borrow.author}</p>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                    <i class="fas fa-calendar-alt"></i> Jadwal Peminjaman
+                </h4>
+                <p><strong>Tanggal Pinjam:</strong> ${borrow.borrowDate}</p>
+                <p><strong>Jatuh Tempo:</strong> ${borrow.dueDate}</p>
+                <p style="color: ${isLate && borrow.status === 'Aktif' ? '#d32f2f' : '#1a7d3d'}; font-weight: 600;">
+                    <i class="fas fa-hourglass-end"></i> 
+                    <strong>${isLate && borrow.status === 'Aktif' ? 'TERLAMBAT ' + Math.abs(daysLeft) + ' hari' : 'Sisa: ' + daysLeft + ' hari'}</strong>
+                </p>
+            </div>
+            
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                    <i class="fas fa-info-circle"></i> Status
+                </h4>
+                <p><strong>Status Peminjaman:</strong> <span class="badge ${borrow.status === 'Aktif' ? (isLate ? 'badge-late' : 'badge-active') : 'badge-available'}">${isLate && borrow.status === 'Aktif' ? 'TERLAMBAT' : borrow.status}</span></p>
+            </div>
+            
+            ${borrow.notes ? `
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="color: var(--ipm-green); margin-bottom: 10px;">
+                        <i class="fas fa-sticky-note"></i> Catatan
+                    </h4>
+                    <p>${borrow.notes}</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    let modal = document.getElementById('borrowDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'borrowDetailModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-book"></i> Detail Peminjaman</h2>
+                    <button class="close-modal" onclick="closeModal('borrowDetailModal')">&times;</button>
+                </div>
+                <div id="borrowDetailContent"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('borrowDetailContent').innerHTML = modalContent;
+    openModal('borrowDetailModal');
+}
+
+function searchBorrowHistory() {
+    const searchTerm = document.getElementById('searchBorrowHistory').value.toLowerCase();
+    const statusFilter = document.getElementById('filterBorrowStatus').value;
+    let borrows = JSON.parse(localStorage.getItem('userBorrows')) || [];
+    
+    if (searchTerm) {
+        borrows = borrows.filter(borrow => 
+            borrow.username.toLowerCase().includes(searchTerm) ||
+            borrow.book.toLowerCase().includes(searchTerm) ||
+            borrow.author.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (statusFilter) {
+        borrows = borrows.filter(borrow => borrow.status === statusFilter);
+    }
+    
+    const tbody = document.getElementById('borrowHistoryTableBody');
+    
+    if (borrows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="no-data"><i class="fas fa-search"></i> Tidak ada data yang sesuai</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = borrows.map(borrow => {
+        const dueDate = new Date(borrow.dueDate);
+        const today = new Date();
+        const isLate = today > dueDate && borrow.status === 'Aktif';
+        const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+        
+        let statusBadge = '';
+        let statusClass = '';
+        
+        if (borrow.status === 'Aktif') {
+            statusBadge = isLate ? '<span class="badge badge-late">TERLAMBAT</span>' : '<span class="badge badge-active">Aktif</span>';
+            statusClass = isLate ? 'late' : '';
+        } else {
+            statusBadge = '<span class="badge" style="background: #d4edda; color: #155724;">Dikembalikan</span>';
+        }
+        
+        return `<tr class="${statusClass}">
+            <td>${borrow.id}</td>
+            <td><strong>${borrow.username}</strong></td>
+            <td>${borrow.book}</td>
+            <td><small>${borrow.author}</small></td>
+            <td>${borrow.borrowDate}</td>
+            <td>${borrow.dueDate}</td>
+            ${isLate && borrow.status === 'Aktif' ? `<td style="color: #d32f2f; font-weight: 600;">Terlambat ${Math.abs(daysLeft)} hari</td>` : `<td>${daysLeft} hari</td>`}
+            <td>${statusBadge}</td>
+            <td>${borrow.notes ? '<i class="fas fa-comment"></i>' : '-'}</td>
+            <td>
+                <button class="btn-action btn-borrow" onclick="viewBorrowDetail(${borrow.id})" title="Lihat Detail">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+</script>
+<body onload="checkAdminAccess()">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-user-cog"></i> Admin Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <span id="adminName">Admin</span>
+                </div>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="display: flex;">
+            <!-- Sidebar -->
+            <nav class="dashboard-sidebar">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="books.html" class="nav-item">
+                    <i class="fas fa-book"></i> Daftar Buku
+                </a>
+                <a href="borrow.html" class="nav-item">
+                    <i class="fas fa-hand-holding"></i> Peminjaman
+                </a>
+                <a href="return.html" class="nav-item">
+                    <i class="fas fa-undo"></i> Pengembalian
+                </a>
+                <a href="admin.html" class="nav-item active">
+                    <i class="fas fa-users"></i> Manajemen User
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="index.html" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <!-- Tabs Navigation -->
+                <div class="admin-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 0;">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('users-section')" style="padding: 12px 20px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: #666; font-weight: 600; transition: all 0.3s;">
+                        <i class="fas fa-users"></i> Manajemen Anggota
+                    </button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('borrow-section')" style="padding: 12px 20px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: #666; font-weight: 600; transition: all 0.3s;">
+                        <i class="fas fa-history"></i> Riwayat Peminjaman
+                    </button>
+                </div>
+
+                <!-- Users Tab Section -->
+                <div id="users-section" class="admin-tab-content">
+                    <!-- Welcome Section -->
+                    <div class="welcome-section" style="background: linear-gradient(135deg, var(--ipm-green) 0%, var(--ipm-dark-green) 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+                        <h1 style="color: white; margin-bottom: 10px;">
+                            <i class="fas fa-users"></i> Manajemen Anggota IPM
+                        </h1>
+                        <p style="opacity: 0.9;">Kelola data anggota, ranting, dan aktivitas sistem</p>
+                    </div>
+
+                    <!-- User Stats -->
+                    <div class="stats-container" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-icon user"><i class="fas fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3 id="totalUsers">0</h3>
+                                <p>Total Anggota</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon book"><i class="fas fa-school"></i></div>
+                            <div class="stat-info">
+                                <h3 id="totalRanting">0</h3>
+                                <p>Total Ranting</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon borrow"><i class="fas fa-user-check"></i></div>
+                            <div class="stat-info">
+                                <h3 id="activeUsers">0</h3>
+                                <p>User Aktif</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Users -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <input type="text" id="searchUsers" placeholder="Cari anggota..." onkeyup="searchUsers()"
+                               style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        <select id="filterRanting" onchange="searchUsers()" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <option value="">Semua Ranting</option>
+                        </select>
+                        <button onclick="exportUsersToCSV()" class="btn-action" style="background: var(--ipm-yellow); color: var(--ipm-green);">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="table-container">
+                        <h2 class="table-title">Daftar Anggota</h2>
+                        <div class="table-responsive">
+                            <table id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Username</th>
+                                        <th>Nama Lengkap</th>
+                                        <th>Ranting</th>
+                                        <th>Sekolah/Kampus</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Tanggal Daftar</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Borrow History Tab Section -->
+                <div id="borrow-section" class="admin-tab-content" style="display: none;">
+                    <!-- Welcome Section -->
+                    <div class="welcome-section" style="background: linear-gradient(135deg, #1a7d3d 0%, #0d4620 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+                        <h1 style="color: white; margin-bottom: 10px;">
+                            <i class="fas fa-history"></i> Riwayat Peminjaman Buku
+                        </h1>
+                        <p style="opacity: 0.9;">Monitor semua peminjaman dan status pengembalian buku dari seluruh user</p>
+                    </div>
+
+                    <!-- Borrow Stats -->
+                    <div class="stats-container" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-icon borrow"><i class="fas fa-book"></i></div>
+                            <div class="stat-info">
+                                <h3 id="totalBorrows">0</h3>
+                                <p>Total Peminjaman</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #d1ecf1; color: #0c5460;"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-info">
+                                <h3 id="activeBorrows">0</h3>
+                                <p>Peminjaman Aktif</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #fff3cd; color: #856404;"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="stat-info">
+                                <h3 id="lateBorrows">0</h3>
+                                <p>Terlambat</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Borrow History -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <input type="text" id="searchBorrowHistory" placeholder="Cari user atau buku..." onkeyup="searchBorrowHistory()"
+                               style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        <select id="filterBorrowStatus" onchange="searchBorrowHistory()" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <option value="">Semua Status</option>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Dikembalikan">Dikembalikan</option>
+                        </select>
+                    </div>
+
+                    <!-- Borrow History Table -->
+                    <div class="table-container">
+                        <h2 class="table-title">Daftar Peminjaman</h2>
+                        <div class="table-responsive">
+                            <table id="borrowHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Judul Buku</th>
+                                        <th>Penulis</th>
+                                        <th>Tanggal Pinjam</th>
+                                        <th>Jatuh Tempo</th>
+                                        <th>Sisa Hari</th>
+                                        <th>Status</th>
+                                        <th>Foto Bukti</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="borrowHistoryTableBody">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Photo Viewer Modal -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Foto Bukti Buku</h2>
+                <button class="close-modal" onclick="closeModal('photoModal')">&times;</button>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <img id="photoModalImage" style="max-width: 100%; border-radius: 8px;">
+                <p id="photoModalInfo" style="margin-top: 15px; color: #666;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
